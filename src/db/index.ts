@@ -1,13 +1,17 @@
 
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import Database from 'better-sqlite3';
+import { drizzle } from 'drizzle-orm/libsql';
+import { createClient } from '@libsql/client';
 import * as schema from '@/db/schema';
-import path from 'path';
 
-// Use local SQLite database
-const dbPath = path.join(process.cwd(), 'local.db');
-const sqlite = new Database(dbPath);
+// Use Turso for production, local SQLite for development
+const url = process.env.TURSO_CONNECTION_URL || 'file:local.db';
+const authToken = process.env.TURSO_AUTH_TOKEN || '';
 
-export const db = drizzle(sqlite, { schema });
+const client = createClient({
+  url,
+  authToken,
+});
+
+export const db = drizzle(client, { schema });
 
 export type Database = typeof db;
