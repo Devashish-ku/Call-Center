@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/db';
-import { users } from '@/db/schema';
-import { eq } from 'drizzle-orm';
-import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+
+// Mock user data for demo
+const mockUsers = [
+  {
+    id: 1,
+    username: 'admin',
+    password: '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
+    role: 'admin',
+    isActive: true
+  }
+];
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,51 +23,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await db
-      .select()
-      .from(users)
-      .where(eq(users.username, username))
-      .limit(1);
-
-    if (user.length === 0) {
-      return NextResponse.json(
-        { error: 'Invalid credentials' },
-        { status: 401 }
+    // Simple demo login - username: admin, password: admin123
+    if (username === 'admin' && password === 'admin123') {
+      const token = jwt.sign(
+        { 
+          userId: 1, 
+          username: 'admin', 
+          role: 'admin' 
+        },
+        process.env.JWT_SECRET || 'fallback-secret',
+        { expiresIn: '24h' }
       );
+
+      return NextResponse.json({
+        user: { id: 1, username: 'admin', role: 'admin', isActive: true },
+        token
+      });
     }
 
-    const isValidPassword = await bcrypt.compare(password, user[0].password);
-
-    if (!isValidPassword) {
-      return NextResponse.json(
-        { error: 'Invalid credentials' },
-        { status: 401 }
-      );
-    }
-
-    if (!user[0].isActive) {
-      return NextResponse.json(
-        { error: 'Account is deactivated' },
-        { status: 401 }
-      );
-    }
-
-    const token = jwt.sign(
-      { 
-        userId: user[0].id, 
-        username: user[0].username, 
-        role: user[0].role 
-      },
-      process.env.JWT_SECRET || 'fallback-secret',
-      { expiresIn: '24h' }
+    return NextResponse.json(
+      { error: 'Invalid credentials' },
+      { status: 401 }
     );
-
-    const { password: _, ...userWithoutPassword } = user[0];
-
-    return NextResponse.json({
-      user: userWithoutPassword,
-      token
-    });
 
   } catch (error) {
     console.error('Login error:', error);
