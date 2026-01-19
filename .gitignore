@@ -48,3 +48,6 @@ next-env.d.ts
 /uploads
 *.tmp
 Untitled-*
+
+# Local Netlify folder
+.netlify
