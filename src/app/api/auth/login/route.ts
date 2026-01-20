@@ -57,22 +57,25 @@ export async function POST(request: NextRequest) {
     );
 
     return NextResponse.json({
-      user: {
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        isActive: user.isActive,
-        name: user.name,
-        email: user.email
-      },
-      token
-    });
+              user: {
+                id: user.id,
+                username: user.username,
+                role: user.role,
+                isActive: user.isActive,
+                name: user.name,
+                email: user.email
+              },
+              token
+            });
 
-  } catch (error) {
-    console.error('Login error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
+          } catch (error) {
+            console.error('Login error detailed:', error);
+            if (error instanceof Error) {
+                console.error('Stack:', error.stack);
+            }
+            return NextResponse.json(
+              { error: 'Internal server error', details: error instanceof Error ? error.message : String(error) },
+              { status: 500 }
+            );
+          }
+        }

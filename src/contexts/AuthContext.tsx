@@ -36,17 +36,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify({ username, password }),
     });
 
+    let text;
+    try {
+      text = await response.text();
+    } catch (e) {
+      throw new Error('Failed to connect to server');
+    }
+
     let data;
     try {
-      const text = await response.text();
-      try {
-        data = JSON.parse(text);
-      } catch {
-        // If response is not JSON, it might be an HTML error page or empty
-        throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}...`);
-      }
-    } catch (e) {
-      throw new Error('Failed to read server response');
+      data = JSON.parse(text);
+    } catch {
+      // If response is not JSON, it might be an HTML error page or empty
+      console.error('Non-JSON response:', text);
+      throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}...`);
     }
 
     if (!response.ok) {

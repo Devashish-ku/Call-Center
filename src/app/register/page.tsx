@@ -49,16 +49,19 @@ export default function RegisterPage() {
         body: JSON.stringify({ username, password, name, email, role }),
       });
 
+      let text;
+      try {
+        text = await response.text();
+      } catch (e) {
+        throw new Error('Failed to connect to server');
+      }
+
       let data;
       try {
-        const text = await response.text();
-        try {
-          data = JSON.parse(text);
-        } catch {
-          throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}...`);
-        }
-      } catch (e) {
-        throw new Error('Failed to read server response');
+        data = JSON.parse(text);
+      } catch {
+        console.error('Non-JSON response:', text);
+        throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}...`);
       }
 
       if (!response.ok) {
