@@ -1,7 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Phone, Loader2 } from 'lucide-react';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -9,6 +17,17 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { login, user, loading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      if (user.role === 'admin') {
+        router.push('/admin/dashboard');
+      } else {
+        router.push('/employee/dashboard');
+      }
+    }
+  }, [user, authLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,97 +35,86 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem('token', data.token);
-        router.push(data.user.role === 'admin' ? '/admin/dashboard' : '/employee/dashboard');
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Login failed');
-      }
+      await login(username, password);
+      // The redirect will be handled by the useEffect hook
     } catch (err) {
-      setError('Login failed');
+      setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)', padding: '1rem' }}>
-      <div style={{ width: '100%', maxWidth: '400px', background: 'white', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)', padding: '2rem' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{ display: 'inline-block', padding: '12px', background: '#3b82f6', borderRadius: '50%', marginBottom: '1rem' }}>
-            <span style={{ color: 'white', fontSize: '24px' }}>📞</span>
-          </div>
-          <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: '0 0 8px 0' }}>Call Center Portal</h1>
-          <p style={{ color: '#6b7280', margin: 0 }}>Enter your credentials to access the system</p>
-        </div>
-        
-        <form onSubmit={handleSubmit}>
-          {error && (
-            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '4px', padding: '12px', marginBottom: '1rem', color: '#dc2626' }}>
-              {error}
-            </div>
-          )}
-          
-          <div style={{ marginBottom: '1rem' }}>
-            <label htmlFor="username" style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>Username</label>
-            <input
-              id="username"
-              type="text"
-              placeholder="Enter your username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              disabled={loading}
-              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '14px' }}
-            />
-          </div>
-          
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label htmlFor="password" style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>Password</label>
-            <input
-              id="password"
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={loading}
-              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '14px' }}
-            />
-          </div>
-
-          <button 
-            type="submit" 
-            disabled={loading}
-            style={{ 
-              width: '100%', 
-              padding: '12px', 
-              background: loading ? '#9ca3af' : '#3b82f6', 
-              color: 'white', 
-              border: 'none', 
-              borderRadius: '4px', 
-              fontSize: '16px', 
-              fontWeight: '500',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              marginBottom: '1rem'
-            }}
-          >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-
-          <div style={{ textAlign: 'center' }}>
-            <a href="/" style={{ color: '#3b82f6', textDecoration: 'none', fontSize: '14px' }}>Back to Home</a>
-          </div>
-        </form>
+  if (authLoading || user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
+    );
+  }
+
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <div className="flex items-center justify-center mb-4">
+            <div className="p-3 bg-primary rounded-full">
+              <Phone className="h-8 w-8 text-primary-foreground" />
+            </div>
+          </div>
+          <CardTitle className="text-2xl text-center">Call Center Portal</CardTitle>
+          <CardDescription className="text-center">
+            Enter your credentials to access the system
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="Enter your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                disabled={loading}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={loading}
+              />
+            </div>
+            
+            <Button className="w-full" type="submit" disabled={loading}>
+              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Sign In
+            </Button>
+
+            <div className="text-center text-sm">
+              Don&apos;t have an account?{' '}
+              <Link href="/register" className="text-primary hover:underline">
+                Register
+              </Link>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

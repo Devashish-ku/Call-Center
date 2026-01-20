@@ -15,6 +15,8 @@ import { Switch } from '@/components/ui/switch';
 interface Employee {
   id: number;
   username: string;
+  name?: string;
+  email?: string;
   role: string;
   isActive: boolean;
   createdAt: string;
@@ -32,6 +34,8 @@ export default function EmployeeManagement({ onUpdate }: EmployeeManagementProps
   const [formData, setFormData] = useState({
     username: '',
     password: '',
+    name: '',
+    email: '',
     isActive: true,
   });
   const [submitting, setSubmitting] = useState(false);
@@ -73,6 +77,8 @@ export default function EmployeeManagement({ onUpdate }: EmployeeManagementProps
       setFormData({
         username: employee.username,
         password: '',
+        name: employee.name || '',
+        email: employee.email || '',
         isActive: employee.isActive,
       });
     } else {
@@ -80,6 +86,8 @@ export default function EmployeeManagement({ onUpdate }: EmployeeManagementProps
       setFormData({
         username: '',
         password: '',
+        name: '',
+        email: '',
         isActive: true,
       });
     }
@@ -89,7 +97,7 @@ export default function EmployeeManagement({ onUpdate }: EmployeeManagementProps
   const handleCloseDialog = () => {
     setDialogOpen(false);
     setEditingEmployee(null);
-    setFormData({ username: '', password: '', isActive: true });
+    setFormData({ username: '', password: '', name: '', email: '', isActive: true });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -142,6 +150,8 @@ export default function EmployeeManagement({ onUpdate }: EmployeeManagementProps
     try {
       const updateData: any = {
         username: formData.username,
+        name: formData.name,
+        email: formData.email,
         isActive: formData.isActive,
       };
 
@@ -247,6 +257,8 @@ export default function EmployeeManagement({ onUpdate }: EmployeeManagementProps
               <TableHeader>
                 <TableRow>
                   <TableHead>Username</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -255,7 +267,7 @@ export default function EmployeeManagement({ onUpdate }: EmployeeManagementProps
               <TableBody>
                 {!Array.isArray(employees) || employees.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       No employees found. Add your first employee to get started.
                     </TableCell>
                   </TableRow>
@@ -263,6 +275,8 @@ export default function EmployeeManagement({ onUpdate }: EmployeeManagementProps
                   employees.map((employee) => (
                     <TableRow key={employee.id}>
                       <TableCell className="font-medium">{employee.username}</TableCell>
+                      <TableCell>{employee.name || '-'}</TableCell>
+                      <TableCell>{employee.email || '-'}</TableCell>
                       <TableCell>
                         <Badge variant={employee.isActive ? 'default' : 'secondary'}>
                           {employee.isActive ? 'Active' : 'Inactive'}
@@ -333,6 +347,31 @@ export default function EmployeeManagement({ onUpdate }: EmployeeManagementProps
                     setFormData({ ...formData, username: e.target.value })
                   }
                   required
+                  disabled={submitting}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  placeholder="John Doe"
+                  disabled={submitting}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                  placeholder="john@example.com"
                   disabled={submitting}
                 />
               </div>

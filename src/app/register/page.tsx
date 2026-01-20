@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,45 +9,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Phone, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
 
 export default function RegisterPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState<'admin' | 'employee'>('employee');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState('employee');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { user } = useAuth();
-
-  // Redirect if already logged in
-  if (user) {
-    if (user.role === 'admin') {
-      router.push('/admin/dashboard');
-    } else {
-      router.push('/employee/dashboard');
-    }
-    return null;
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    // Validate passwords match
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
     }
 
-    // Validate password length
     if (password.length < 6) {
       setError('Password must be at least 6 characters');
       return;
@@ -62,11 +43,7 @@ export default function RegisterPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          username, 
-          password, 
-          role 
-        }),
+        body: JSON.stringify({ username, password, name, email, role }),
       });
 
       const data = await response.json();
@@ -75,16 +52,8 @@ export default function RegisterPage() {
         throw new Error(data.error || 'Registration failed');
       }
 
-      // Store token and user data
-      localStorage.setItem('authToken', data.token);
-      localStorage.setItem('currentUser', JSON.stringify(data.user));
-
-      // Redirect based on role
-      if (data.user.role === 'admin') {
-        router.push('/admin/dashboard');
-      } else {
-        router.push('/employee/dashboard');
-      }
+      // Registration successful, redirect to login
+      router.push('/login?registered=true');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
@@ -103,7 +72,7 @@ export default function RegisterPage() {
           </div>
           <CardTitle className="text-2xl text-center">Create Account</CardTitle>
           <CardDescription className="text-center">
-            Register for Call Center Portal access
+            Register for the Call Center Portal
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -128,67 +97,78 @@ export default function RegisterPage() {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
-              <Select value={role} onValueChange={(value: 'admin' | 'employee') => setRole(value)} disabled={loading}>
-                <SelectTrigger id="role">
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="employee">Employee</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="name">Full Name</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Enter your full name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={loading}
+              />
             </div>
-            
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="role">Role</Label>
+              <select
+                id="role"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={loading}
+              >
+                <option value="employee">Employee</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="Enter password (min. 6 characters)"
+                placeholder="Choose a password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={loading}
-                autoComplete="off"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
               <Input
                 id="confirmPassword"
                 type="password"
-                placeholder="Re-enter password"
+                placeholder="Confirm your password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 disabled={loading}
-                autoComplete="off"
               />
             </div>
-
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating Account...
-                </>
-              ) : (
-                'Register'
-              )}
+            
+            <Button className="w-full" type="submit" disabled={loading}>
+              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Register
             </Button>
 
             <div className="text-center text-sm">
-              <span className="text-muted-foreground">Already have an account? </span>
-              <Link href="/login" className="text-primary hover:underline font-medium">
-                Sign in here
-              </Link>
-            </div>
-
-            <div className="text-center">
-              <Link href="/" className="text-sm text-primary hover:underline">
-                Back to Home
+              Already have an account?{' '}
+              <Link href="/login" className="text-primary hover:underline">
+                Login
               </Link>
             </div>
           </form>

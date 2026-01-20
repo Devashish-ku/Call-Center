@@ -1,5 +1,8 @@
-'use client';
+// src/context/AuthContext.tsx
+'use client' // <--- THIS IS CRITICAL
 
+
+// ... rest of your imports and code
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, getCurrentUser, setCurrentUser, setAuthToken, removeAuthToken, logout as authLogout } from '@/lib/auth';
 

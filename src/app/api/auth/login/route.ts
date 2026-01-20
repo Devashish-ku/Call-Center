@@ -1,16 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/db';
+import { users } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-
-// Mock user data for demo
-const mockUsers = [
-  {
-    id: 1,
-    username: 'admin',
-    password: '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
-    role: 'admin',
-    isActive: true
-  }
-];
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,28 +16,57 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Simple demo login - username: admin, password: admin123
-    if (username === 'admin' && password === 'admin123') {
-      const token = jwt.sign(
-        { 
-          userId: 1, 
-          username: 'admin', 
-          role: 'admin' 
-        },
-        process.env.JWT_SECRET || 'fallback-secret',
-        { expiresIn: '24h' }
-      );
+    // Find user in database
+    const user = await db.query.users.findFirst({
+      where: eq(users.username, username),
+    });
 
-      return NextResponse.json({
-        user: { id: 1, username: 'admin', role: 'admin', isActive: true },
-        token
-      });
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Invalid credentials' },
+        { status: 401 }
+      );
     }
 
-    return NextResponse.json(
-      { error: 'Invalid credentials' },
-      { status: 401 }
+    if (!user.isActive) {
+      return NextResponse.json(
+        { error: 'Account is disabled' },
+        { status: 403 }
+      );
+    }
+
+    // Verify password
+    const passwordMatch = await bcrypt.compare(password, user.password);
+
+    if (!passwordMatch) {
+      return NextResponse.json(
+        { error: 'Invalid credentials' },
+        { status: 401 }
+      );
+    }
+
+    // Generate token
+    const token = jwt.sign(
+      { 
+        userId: user.id, 
+        username: user.username, 
+        role: user.role 
+      },
+      process.env.JWT_SECRET || 'fallback-secret',
+      { expiresIn: '24h' }
     );
+
+    return NextResponse.json({
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        isActive: user.isActive,
+        name: user.name,
+        email: user.email
+      },
+      token
+    });
 
   } catch (error) {
     console.error('Login error:', error);

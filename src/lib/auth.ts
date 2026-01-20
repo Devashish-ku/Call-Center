@@ -3,6 +3,8 @@ export interface User {
   username: string;
   role: 'admin' | 'employee';
   isActive: boolean;
+  name?: string;
+  email?: string;
 }
 
 export interface AuthResponse {

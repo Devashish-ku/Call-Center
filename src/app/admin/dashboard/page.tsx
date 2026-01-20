@@ -1,5 +1,7 @@
 'use client';
 
+
+export const dynamic = "force-dynamic";
 import { useEffect, useState } from 'react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
@@ -177,4 +179,7 @@ function AdminDashboardContent() {
       </div>
     </div>
   );
+}
+if (typeof window !== "undefined") {
+  localStorage.getItem("token");
 }
