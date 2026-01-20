@@ -6,6 +6,15 @@ import { eq } from 'drizzle-orm';
 
 export async function POST(request: Request) {
   try {
+    // Safety check for production environment
+    if (process.env.NODE_ENV === 'production' && !process.env.TURSO_CONNECTION_URL) {
+      console.error('Registration failed: TURSO_CONNECTION_URL is missing in production');
+      return NextResponse.json(
+        { error: 'Database configuration missing (TURSO_CONNECTION_URL)' },
+        { status: 500 }
+      );
+    }
+
     const { username, password, name, email, role } = await request.json();
 
     if (!username || !password) {

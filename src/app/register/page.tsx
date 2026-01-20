@@ -56,6 +56,10 @@ export default function RegisterPage() {
         throw new Error('Failed to connect to server');
       }
 
+      if (!text) {
+        throw new Error('Server returned an empty response. This usually indicates a server configuration error.');
+      }
+
       let data;
       try {
         data = JSON.parse(text);
