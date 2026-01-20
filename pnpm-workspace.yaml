@@ -1,0 +1,9 @@
+ignoredBuiltDependencies:
+  - '@prisma/client'
+
+onlyBuiltDependencies:
+  - '@tsparticles/engine'
+  - bcrypt
+  - esbuild
+  - sharp
+  - unrs-resolver
