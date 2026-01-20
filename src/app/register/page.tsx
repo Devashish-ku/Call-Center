@@ -46,10 +46,20 @@ export default function RegisterPage() {
         body: JSON.stringify({ username, password, name, email, role }),
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        const text = await response.text();
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}...`);
+        }
+      } catch (e) {
+        throw new Error('Failed to read server response');
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || 'Registration failed');
+        throw new Error(data?.error || 'Registration failed');
       }
 
       // Registration successful, redirect to login
