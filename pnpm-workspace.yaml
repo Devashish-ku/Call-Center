@@ -7,3 +7,5 @@ onlyBuiltDependencies:
   - esbuild
   - sharp
   - unrs-resolver
+  - react-particles
+  - tsparticles-engine

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { users } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { or, eq } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
@@ -16,9 +16,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find user in database
+    // Find user in database by username OR email
     const user = await db.query.users.findFirst({
-      where: eq(users.username, username),
+      where: or(
+        eq(users.username, username),
+        eq(users.email, username)
+      ),
     });
 
     if (!user) {
