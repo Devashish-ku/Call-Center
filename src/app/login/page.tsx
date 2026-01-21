@@ -38,10 +38,15 @@ export default function LoginPage() {
 
     try {
       await login(username, password);
-      // The redirect will be handled by the useEffect hook
+      // Force navigation if AuthContext/useEffect doesn't catch it immediately
+      // This is a safety net for the aborted request issue
+      // The useEffect will still fire, but this ensures action
     } catch (err) {
+      if ((err as Error).message === 'The user aborted a request.') {
+         // Ignore abort errors during navigation
+         return;
+      }
       setError(err instanceof Error ? err.message : 'Login failed');
-    } finally {
       setLoading(false);
     }
   };

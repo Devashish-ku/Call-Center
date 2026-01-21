@@ -2,6 +2,12 @@
     "name": "app",
     "version": "0.1.0",
     "private": true,
+    "pnpm": {
+        "onlyBuiltDependencies": [
+            "react-particles",
+            "tsparticles-engine"
+        ]
+    },
     "scripts": {
         "dev": "next dev --turbopack",
         "build": "next build",

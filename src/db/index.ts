@@ -7,6 +7,12 @@ import * as schema from '@/db/schema';
 const url = process.env.TURSO_CONNECTION_URL || 'file:local.db';
 const authToken = process.env.TURSO_AUTH_TOKEN || '';
 
+console.log('Database Config:', {
+  url: url.includes('turso') ? '***TURSO***' : url,
+  hasAuthToken: !!authToken,
+  nodeEnv: process.env.NODE_ENV
+});
+
 if (process.env.NODE_ENV === 'production' && !process.env.TURSO_CONNECTION_URL) {
   console.warn('WARNING: Running in production without TURSO_CONNECTION_URL. Falling back to local.db which may be read-only.');
 }
