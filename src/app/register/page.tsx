@@ -69,7 +69,10 @@ export default function RegisterPage() {
       }
 
       if (!response.ok) {
-        throw new Error(data?.error || 'Registration failed');
+        const errorMessage = data?.details 
+          ? `${data.error}: ${data.details}` 
+          : (data?.error || 'Registration failed');
+        throw new Error(errorMessage);
       }
 
       // Registration successful, redirect to login
