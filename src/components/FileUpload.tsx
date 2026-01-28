@@ -20,7 +20,7 @@ import {
   Delete,
   InsertDriveFile,
   CheckCircle,
-  Error,
+  Error as ErrorIcon,
 } from '@mui/icons-material';
 
 interface FileUploadProps {
@@ -56,6 +56,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
   maxFiles = 10,
   maxFileSize = 50, // 50MB default
   acceptedTypes = [
+    'image/*',
     'application/pdf',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -63,9 +64,18 @@ const FileUpload: React.FC<FileUploadProps> = ({
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'text/plain',
     'text/csv',
+    'text/comma-separated-values',
+    'application/csv',
+    'application/octet-stream',
+    'application/x-excel',
+    'application/x-msexcel',
+    'text/vcard',
+    'text/x-vcard',
     'image/jpeg',
     'image/png',
     'image/gif',
+    'image/*',
+    '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.csv', '.txt', '.jpg', '.jpeg', '.png', '.gif', '.vcf', '.xml', '.json', '.heic', '.heif',
   ],
   uploadedBy,
 }) => {
@@ -78,20 +88,25 @@ const FileUpload: React.FC<FileUploadProps> = ({
     if (file.size > maxFileSize * 1024 * 1024) {
       return `File size exceeds ${maxFileSize}MB limit`;
     }
-    if (!acceptedTypes.includes(file.type)) {
+
+    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+    const isMimeTypeAccepted = acceptedTypes.includes(file.type);
+    const isExtensionAccepted = acceptedTypes.includes(fileExtension);
+
+    if (!isMimeTypeAccepted && !isExtensionAccepted) {
       return 'File type not supported';
     }
     return null;
   };
 
-  const uploadFile = async (file: File, index: number): Promise<void> => {
+  const uploadFile = async (file: File, index: number): Promise<UploadedFile> => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('description', `Uploaded file: ${file.name}`);
-    if (uploadedBy) {
+    if (uploadedBy !== undefined && uploadedBy !== null) {
       formData.append('uploadedBy', uploadedBy.toString());
     }
-    if (!uploadedBy) {
+    if (uploadedBy === undefined || uploadedBy === null) {
       // Server requires uploadedBy; surface friendly error if missing
       const errorMessage = 'Uploader information missing. Please log in again.';
       setFiles(prev => prev.map((f, i) => 
@@ -107,6 +122,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
       const response = await fetch('/api/files', {
         method: 'POST',
         body: formData,
+        credentials: 'include', // Ensure cookies/session are sent from other devices
       });
 
       if (!response.ok) {
@@ -114,7 +130,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
         throw new Error(errorData.error || 'Upload failed');
       }
 
-      const uploadedFile: UploadedFile = await response.json();
+      const uploadedFile: UploadedFile = (await response.json()) as UploadedFile;
 
       setFiles(prev => prev.map((f, i) => 
         i === index 
@@ -142,35 +158,44 @@ const FileUpload: React.FC<FileUploadProps> = ({
       return;
     }
 
-    const validatedFiles: FileWithProgress[] = [];
-    
-    for (const file of newFiles) {
+    const processedFiles: FileWithProgress[] = newFiles.map(file => {
       const error = validateFile(file);
       if (error) {
         onUploadError?.(error);
-        continue;
+        return {
+          file,
+          progress: 0,
+          status: 'error',
+          error,
+        };
       }
-      
-      validatedFiles.push({
+      return {
         file,
         progress: 0,
         status: 'uploading',
-      });
-    }
+      };
+    });
 
-    if (validatedFiles.length === 0) return;
+    if (processedFiles.length === 0) return;
 
-    setFiles(prev => [...prev, ...validatedFiles]);
+    const startIndex = files.length;
+    setFiles(prev => [...prev, ...processedFiles]);
+    
+    const filesToUpload = processedFiles
+      .map((f, i) => ({ file: f.file, index: startIndex + i, status: f.status }))
+      .filter(f => f.status === 'uploading');
+
+    if (filesToUpload.length === 0) return;
+
     setIsUploading(true);
-
-    const uploadPromises = validatedFiles.map((fileWithProgress, index) => 
-      uploadFile(fileWithProgress.file, files.length + index)
+    const uploadPromises = filesToUpload.map(({ file, index }) => 
+      uploadFile(file, index)
     );
 
     try {
       const uploadedFiles = await Promise.allSettled(uploadPromises);
       const successfulUploads = uploadedFiles
-        .filter((result): result is PromiseFulfilledResult<UploadedFile> => 
+        .filter((result): result is { status: 'fulfilled'; value: UploadedFile } => 
           result.status === 'fulfilled'
         )
         .map(result => result.value);
@@ -239,56 +264,73 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
   return (
     <Box>
-      <Paper
-        elevation={isDragOver ? 8 : 2}
-        sx={{
-          p: 3,
-          border: isDragOver ? '2px dashed #1976d2' : '2px dashed #ccc',
-          backgroundColor: isDragOver ? '#f3f7ff' : '#fafafa',
-          textAlign: 'center',
-          cursor: 'pointer',
-          transition: 'all 0.3s ease',
-          '&:hover': {
-            backgroundColor: '#f5f5f5',
-            borderColor: '#1976d2',
-          },
-        }}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
-      >
-        <CloudUpload sx={{ fontSize: 48, color: '#1976d2', mb: 2 }} />
-        <Typography variant="h6" gutterBottom>
-          Drag & Drop Files Here
-        </Typography>
-        <Typography variant="body2" color="text.secondary" gutterBottom>
-          or click to browse files
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          Max {maxFiles} files, {maxFileSize}MB each • Files will be available for sharing
-        </Typography>
-        <Box sx={{ mt: 2 }}>
-          {acceptedTypes.map((type, index) => (
-            <Chip
-              key={index}
-              label={type.split('/')[1]?.toUpperCase() || type}
-              size="small"
-              variant="outlined"
-              sx={{ m: 0.5 }}
-            />
-          ))}
-        </Box>
-      </Paper>
+      {(uploadedBy === undefined || uploadedBy === null) && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          Authentication required. Please log in to upload files.
+        </Alert>
+      )}
 
-      <input
+      <label style={{ display: 'block', width: '100%', cursor: (uploadedBy !== undefined && uploadedBy !== null) ? 'pointer' : 'not-allowed' }}>
+        <Paper
+          elevation={isDragOver ? 8 : 2}
+          sx={{
+            p: 3,
+            border: isDragOver ? '2px dashed #1976d2' : '2px dashed #ccc',
+            backgroundColor: isDragOver ? '#f3f7ff' : '#fafafa',
+            textAlign: 'center',
+            cursor: (uploadedBy !== undefined && uploadedBy !== null) ? 'pointer' : 'not-allowed',
+            opacity: (uploadedBy !== undefined && uploadedBy !== null) ? 1 : 0.6,
+            transition: 'all 0.3s ease',
+            '&:hover': {
+              backgroundColor: '#f5f5f5',
+              borderColor: '#1976d2',
+            },
+          }}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          <CloudUpload sx={{ fontSize: 48, color: '#1976d2', mb: 2 }} />
+          <Typography variant="h6" gutterBottom>
+            Drag & Drop Files Here
+          </Typography>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            or click to browse files
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Max {maxFiles} files, {maxFileSize}MB each • Files will be available for sharing
+          </Typography>
+          <Box sx={{ mt: 2 }}>
+            {acceptedTypes.map((type, index) => (
+              <Chip
+                key={index}
+                label={type.split('/')[1]?.toUpperCase() || type}
+                size="small"
+                variant="outlined"
+                sx={{ m: 0.5 }}
+              />
+            ))}
+          </Box>
+        </Paper>
+        <input
         ref={fileInputRef}
         type="file"
         multiple
         accept={acceptedTypes.join(',')}
+        disabled={(uploadedBy === undefined || uploadedBy === null) || isUploading}
         onChange={handleFileSelect}
-        style={{ display: 'none' }}
+        style={{
+          position: 'absolute',
+          width: '1px',
+          height: '1px',
+          padding: 0,
+          margin: '-1px',
+          overflow: 'hidden',
+          clip: 'rect(0,0,0,0)',
+          border: 0,
+        }}
       />
+      </label>
 
       {files.length > 0 && (
         <Box sx={{ mt: 3 }}>
@@ -302,7 +344,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
                   {fileWithProgress.status === 'success' ? (
                     <CheckCircle color="success" />
                   ) : fileWithProgress.status === 'error' ? (
-                    <Error color="error" />
+                    <ErrorIcon color="error" />
                   ) : (
                     <InsertDriveFile color="primary" />
                   )}
