@@ -253,6 +253,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
     if (mimeType.includes('text')) return '📄';
     return '📁';
   };
+  
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
